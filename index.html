@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crowdfunding for Blind Children's Future</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Ethers.js for blockchain interaction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .progress-bar-inner {
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <div class="min-h-screen bg-cover bg-center" style="background-image: url('https://placehold.co/1920x1080/e0e7ff/6366f1?text=.')">
+        <div class="container mx-auto p-4 md:p-8 flex items-center justify-center min-h-screen">
+
+            <!-- Main Card -->
+            <div class="w-full max-w-4xl glass-card rounded-2xl shadow-2xl p-6 md:p-10">
+                
+                <!-- Header Section -->
+                <header class="text-center mb-8">
+                    <h1 class="text-4xl md:text-5xl font-extrabold text-indigo-900 mb-2">Light Up a Life</h1>
+                    <p class="text-lg md:text-xl text-indigo-700">Support the Education & Care of Blind Children</p>
+                </header>
+
+                <!-- Main Content Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    
+                    <!-- Left Column: Mission & Status -->
+                    <div class="space-y-8">
+                        <!-- About Section -->
+                        <section>
+                            <h2 class="text-2xl font-bold text-indigo-800 mb-4 flex items-center gap-3">
+                                <i class="fa-solid fa-bullseye"></i> Our Mission
+                            </h2>
+                            <p class="text-gray-600 leading-relaxed">
+                                We are dedicated to providing blind and visually impaired children with the resources they need to thrive. Your contribution helps fund specialized education, assistive technology, and a supportive environment for every child.
+                            </p>
+                        </section>
+
+                        <!-- Status Section -->
+                        <section class="bg-indigo-50/50 p-6 rounded-xl border border-indigo-100">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-4">Campaign Progress</h3>
+                            
+                            <!-- Progress Bar -->
+                            <div class="mb-2">
+                                <div class="flex justify-between items-center text-sm font-bold text-indigo-800">
+                                    <span id="totalRaised">Loading...</span>
+                                    <span id="goalAmountText">of 100 ETH</span>
+                                </div>
+                                <div class="w-full bg-indigo-200 rounded-full h-2.5 mt-1">
+                                    <div id="progressBar" class="bg-indigo-600 h-2.5 rounded-full progress-bar-inner" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 text-center mt-3">All contributions are transparently recorded on the blockchain.</p>
+                        </section>
+                    </div>
+
+                    <!-- Right Column: Interaction -->
+                    <div class="bg-white/80 p-6 rounded-xl border border-gray-200 shadow-lg flex flex-col justify-center text-center">
+                        <div id="wallet-connection">
+                            <i class="fa-solid fa-wallet text-5xl text-indigo-500 mb-4"></i>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">Get Started</h3>
+                            <p class="text-gray-600 mb-6">Connect your wallet to make a donation.</p>
+                            <button id="connectButton" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                                Connect Metamask Wallet
+                            </button>
+                            <p id="walletStatus" class="mt-4 text-sm text-gray-500 hidden"></p>
+                        </div>
+                        
+                        <div id="donation-section" class="hidden">
+                            <i class="fa-solid fa-hand-holding-dollar text-5xl text-green-500 mb-4"></i>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">Thank You for Your Support!</h3>
+                            <div class="flex items-center border-2 border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition">
+                                <span class="pl-3 text-gray-500">ETH</span>
+                                <input type="text" id="donationAmount" placeholder="0.1" class="w-full p-3 border-0 bg-transparent text-center font-bold text-lg focus:outline-none">
+                                <button id="donateButton" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-r-md transition-transform transform hover:scale-105 m-0.5">
+                                    Donate
+                                </button>
+                            </div>
+                            <p id="donationStatus" class="mt-4 text-sm h-5"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <footer class="text-center mt-10 text-xs text-indigo-800/60">
+                    <p>Built on the Ethereum Blockchain for Transparency and Trust.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      const contractAddress = "0xE7B487eA609B6942f325549F8cf5441113ABF467";
+
+      const contractABI = [
+        {
+          inputs: [],
+          name: "donate",
+          outputs: [],
+          stateMutability: "payable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          stateMutability: "nonpayable",
+          type: "constructor",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "donor",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "Donated",
+          type: "event",
+        },
+        {
+          inputs: [],
+          name: "withdraw",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          stateMutability: "payable",
+          type: "receive",
+        },
+        {
+          inputs: [],
+          name: "beneficiary",
+          outputs: [
+            {
+              internalType: "address payable",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "totalRaised",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+      ];
+
+      const connectButton = document.getElementById("connectButton");
+      const walletStatus = document.getElementById("walletStatus");
+      const donationSection = document.getElementById("donation-section");
+      const donateButton = document.getElementById("donateButton");
+      const donationAmountInput = document.getElementById("donationAmount");
+      const totalRaisedDisplay = document.getElementById("totalRaised");
+      const donationStatus = document.getElementById("donationStatus");
+
+      let provider;
+      let signer;
+      let contract;
+
+      // Initialize the app on load
+      window.addEventListener("load", async () => {
+        if (typeof window.ethereum === "undefined") {
+          connectButton.innerText = "Please install Metamask!";
+          connectButton.disabled = true;
+          alert(
+            "Metamask is not installed. Please install it to use this DApp."
+          );
+        }
+        // Initialize provider and contract to fetch total raised amount
+        try {
+          // Use a generic provider to read data without connecting wallet
+          const defaultProvider = new ethers.providers.JsonRpcProvider(
+            "https://rpc.ankr.com/eth_sepolia"
+          ); // Using Sepolia public RPC
+          const readOnlyContract = new ethers.Contract(
+            contractAddress,
+            contractABI,
+            defaultProvider
+          );
+          updateTotalRaised(readOnlyContract);
+        } catch (error) {
+          if (contractAddress === "YOUR_CONTRACT_ADDRESS_HERE") {
+            totalRaisedDisplay.innerText = "Please configure contract address.";
+          } else {
+            console.error("Could not fetch total raised amount:", error);
+            totalRaisedDisplay.innerText = "Error fetching data.";
+          }
+        }
+      });
+
+      // Connect wallet button event listener
+      connectButton.addEventListener("click", async () => {
+        if (window.ethereum) {
+          try {
+            await window.ethereum.request({ method: "eth_requestAccounts" });
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+            const address = await signer.getAddress();
+
+            contract = new ethers.Contract(
+              contractAddress,
+              contractABI,
+              signer
+            );
+
+            connectButton.innerText = "Wallet Connected";
+            connectButton.disabled = true;
+            walletStatus.innerText = `Connected: ${address.substring(
+              0,
+              6
+            )}...${address.substring(address.length - 4)}`;
+            walletStatus.classList.remove("hidden");
+            donationSection.classList.remove("hidden");
+          } catch (error) {
+            console.error("User rejected connection:", error);
+            walletStatus.innerText = "Connection failed. Please try again.";
+            walletStatus.classList.remove("hidden");
+            walletStatus.classList.add("text-red-500");
+          }
+        }
+      });
+
+      // Donate button event listener
+      donateButton.addEventListener("click", async () => {
+        const amount = donationAmountInput.value;
+        if (!amount || isNaN(amount) || amount <= 0) {
+          setDonationStatus("Please enter a valid amount in ETH.", true);
+          return;
+        }
+
+        try {
+          setDonationStatus("Preparing transaction...", false);
+          const amountInWei = ethers.utils.parseEther(amount);
+
+          const tx = await contract.donate({ value: amountInWei });
+          setDonationStatus(
+            "Transaction sent! Waiting for confirmation...",
+            false
+          );
+
+          await tx.wait(); // Wait for the transaction to be mined
+
+          setDonationStatus("Thank you for your generous donation!", false);
+          donationAmountInput.value = "";
+          updateTotalRaised(contract);
+        } catch (error) {
+          console.error("Donation failed:", error);
+          setDonationStatus(
+            error.reason || "Transaction failed. Please try again.",
+            true
+          );
+        }
+      });
+
+      async function updateTotalRaised(contractInstance) {
+        try {
+          const raised = await contractInstance.totalRaised();
+          totalRaisedDisplay.innerText = `${ethers.utils.formatEther(
+            raised
+          )} ETH`;
+        } catch (error) {
+          if (contractAddress !== "YOUR_CONTRACT_ADDRESS_HERE") {
+            console.error("Could not fetch total raised:", error);
+            totalRaisedDisplay.innerText = "Error";
+          }
+        }
+      }
+
+      function setDonationStatus(message, isError) {
+        donationStatus.innerText = message;
+        donationStatus.classList.toggle("text-red-500", isError);
+        donationStatus.classList.toggle("text-green-500", !isError);
+      }
+    </script>
+  </body>
+</html>
